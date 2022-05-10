@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas class="webgl"></canvas>
+    <script type="module">
+        import * as THREE from '../src/three.module.js';
+        import { OrbitControls } from '../src/OrbitControls.js';
+        import THREEx from "./keyboardState.js";
+        const canvas = document.querySelector(".webgl"); 
+        const scene = new THREE.Scene()        
+
+        const sizes = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        } 
+        const geometry = new THREE.PlaneGeometry(1000, 1000, 1, 1); 
+        const floorTexture = new THREE.ImageUtils.loadTexture( 'bg.jpeg' );
+        floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+        floorTexture.repeat.set( 10, 10 ); 
+        const floorMaterial = new THREE.MeshBasicMaterial({ 
+            map: floorTexture, 
+            side: THREE.DoubleSide 
+        });
+
+        const floor = new THREE.Mesh(geometry, floorMaterial); 
+        floor.position.y = -1.5;
+        floor.rotation.x = - Math.PI / 2;
+
+        scene.add(floor); 
+        const boxgeometry = new THREE.BoxGeometry(1, 1, 1);
+        const boxMaterials = [];
+        for (let i = 0; i < 6; i++) {
+            const boxMaterial = new THREE.MeshBasicMaterial({
+                color: Math.random() * 0xffffff,
+            });
+            boxMaterials.push(boxMaterial);
+        } 
+        const box = new THREE.Mesh(boxgeometry, boxMaterials);
+        box.position.y = 1;
+        box.position.z = 8;
+
+        window.box = box;
+        scene.add(box); 
+        const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height);
+
+        camera.position.z = 6;
+        camera.position.z = 18;
+        const controls = new OrbitControls(camera, canvas)
+        controls.enableDamping = true;  
+
+        scene.add(camera)
+
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas
+        })
+        renderer.setSize(sizes.width, sizes.height)
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.render(scene, camera); 
+        const keyboard = new THREEx.KeyboardState();
+        const clock = new THREE.Clock();
+
+        const tick = () => {
+
+            const delta = clock.getDelta();
+            
+            const moveDistance = 5 * delta;
+            const rotateAngle = Math.PI / 2 * delta;
+            
+            if (keyboard.pressed("down") | keyboard.pressed("s"))
+                box.translateZ(moveDistance);
+            if (keyboard.pressed("up") | keyboard.pressed("w"))
+                box.translateZ(-moveDistance);
+            if (keyboard.pressed("left") | keyboard.pressed("a"))
+                box.translateX(-moveDistance);
+            if (keyboard.pressed("right") | keyboard.pressed("d"))
+                box.translateX(moveDistance); 
+
+            const relativeCameraOffset = new THREE.Vector3(0, 5, 10);
+
+            const cameraOffset = relativeCameraOffset.applyMatrix4( box.matrixWorld );
+
+            camera.position.x = cameraOffset.x;
+            camera.position.y = cameraOffset.y;
+            camera.position.z = cameraOffset.z;
+
+            controls.target = box.position;
+
+            controls.update();
+
+            renderer.render(scene, camera)
+
+            window.requestAnimationFrame(tick)
+        }
+
+        tick();
+
+        window.addEventListener('resize', () => {
+            sizes.width = window.innerWidth;
+            sizes.height = window.innerHeight;
+
+            camera.aspect = sizes.width / sizes.height;
+            camera.updateProjectionMatrix();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+            renderer.setSize(sizes.width, sizes.height)
+        })
+
+    </script>
+</body>
+
+</html>
